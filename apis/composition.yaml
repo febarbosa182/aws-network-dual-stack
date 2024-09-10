@@ -1,0 +1,592 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xnetworks.com.febarbosa
+spec:
+  compositeTypeRef:
+    apiVersion: com.febarbosa/v1alpha1
+    kind: XNetwork
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform-base
+    functionRef:
+      name: crossplane-contrib-function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      patchSets:
+      - name: providerConfigRef
+        patches:
+        - fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          type: FromCompositeFieldPath
+      - name: region
+        patches:
+        - fromFieldPath: spec.region
+          toFieldPath: spec.forProvider.region
+          type: FromCompositeFieldPath
+      resources:
+        - name: vpc
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: VPC
+            spec:
+              forProvider:
+                assignGeneratedIpv6CidrBlock: true
+                enableDnsSupport: true
+                enableDnsHostnames: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.cidrBlock
+              toFieldPath: spec.forProvider.cidrBlock
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'vpc-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+        - name: internet-gateway
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: InternetGateway
+            spec:
+              forProvider:
+                vpcIdSelector:
+                  matchControllerRef: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'ig-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+        - name: egress-only-gateway
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: EgressOnlyInternetGateway
+            spec:
+              forProvider:
+                vpcIdSelector:
+                  matchControllerRef: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'eo-ig-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+        - name: elastic-ip
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: EIP
+            spec:
+              forProvider:
+                vpc: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'eip-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+        - name: route-table-public
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: RouteTable
+            spec:
+              forProvider:
+                vpcIdSelector:
+                  matchControllerRef: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'rt-public-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+        - name: route-table-private
+          base:
+            apiVersion: ec2.aws.upbound.io/v1beta1
+            kind: RouteTable
+            spec:
+              forProvider:
+                vpcIdSelector:
+                  matchControllerRef: true
+          patches:
+            - type: PatchSet
+              patchSetName: region
+            - type: PatchSet
+              patchSetName: providerConfigRef
+            - fromFieldPath: spec.id
+              toFieldPath: metadata.name
+              transforms:
+                - string:
+                    fmt: 'rt-private-%s'
+                    type: Format
+                  type: string
+              type: FromCompositeFieldPath
+  
+  - step: cidr-subnets
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      prefixField: spec.cidrBlock
+      newBits:
+        - 2
+        - 2
+      outputField: status.atFunction.cidr.partitions
+  - step: cidr-subnets-private
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      prefixField: desired.composite.resource.status.atFunction.cidr.partitions[0]
+      newBits:
+        - 6
+        - 6
+        - 6
+      outputField: status.atFunction.cidr.private.subnets
+  - step: cidr-subnets-public
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      prefixField: desired.composite.resource.status.atFunction.cidr.partitions[1]
+      newBits:
+        - 6
+        - 6
+        - 6
+      outputField: status.atFunction.cidr.public.subnets
+  - step: cidr-subnets-ipv6
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      # Testing value, problems duw to undifined IPV6 before create
+      # prefix: 2600:1f16:541:6100::/56
+      prefixField: desired.composite.resource.status.atProvider.cidrIpv6.ipv6CidrBlock
+      newBits:
+        - 2
+        - 2
+      outputField: status.atFunction.cidrIpv6.partitions
+  - step: cidr-subnets-private-ipv6
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      prefixField: desired.composite.resource.status.atFunction.cidrIpv6.partitions[0]
+      newBits:
+        - 6
+        - 6
+        - 6
+      outputField: status.atFunction.cidrIpv6.private.subnets
+  - step: cidr-subnets-public-ipv6
+    functionRef:
+      name: upbound-function-cidr
+    input:
+      apiVersion: cidr.fn.crossplane.io/v1beta1
+      kind: Parameters
+      cidrFunc: cidrsubnets
+      prefixField: desired.composite.resource.status.atFunction.cidrIpv6.partitions[1]
+      newBits:
+        - 6
+        - 6
+        - 6
+      outputField: status.atFunction.cidrIpv6.public.subnets
+  - step: render-templates
+    functionRef:
+      name: crossplane-contrib-function-go-templating
+    input:
+      apiVersion: gotemplate.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{ $params := .observed.composite.resource.spec  }}
+          {{ $publicSubnets := .desired.composite.resource.status.atFunction.cidr.public.subnets }}
+          {{ $privateSubnets := .desired.composite.resource.status.atFunction.cidr.private.subnets }}
+          {{ $publicSubnetsIpv6 := .desired.composite.resource.status.atFunction.cidrIpv6.public.subnets }}
+          {{ $privateSubnetsIpv6 := .desired.composite.resource.status.atFunction.cidrIpv6.private.subnets }}
+          {{- range $key, $az := $params.availabilityZones }}
+          ---
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: subnet-public-{{ $params.id }}-{{ $az }}
+            labels:
+              zone: {{ $az }}
+              access: public
+              name: subnet-public-{{ $params.id }}-{{ $az }}
+            annotations:
+              {{ setResourceNameAnnotation (printf "subnet-public-%s-%s" $params.id $az) }}
+          spec:
+            forProvider:
+              region: {{ $params.region }}
+              cidrBlock: {{ index $publicSubnets $key }}
+              ipv6CidrBlock: {{ index $publicSubnetsIpv6 $key }}
+              assignIpv6AddressOnCreation: true
+              enableDns64: true
+              enableResourceNameDnsARecordOnLaunch: false
+              enableResourceNameDnsAaaaRecordOnLaunch: true
+              mapPublicIpOnLaunch: false
+              availabilityZone: {{ $az }}
+              vpcIdSelector:
+                matchControllerRef: true
+              tags:
+                kubernetes.io/role/elb: "1"
+                kubernetes.io/role/alb-ingress: "1"
+            providerConfigRef:
+              name: {{ $params.providerConfigName }}
+          ---
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTableAssociation   
+          metadata:
+            name: rta-public-{{ $params.id }}-{{ $az }}
+            annotations:
+              {{ setResourceNameAnnotation (printf "rta-public-%s-%s" $params.id $az) }}
+          spec:
+            forProvider:
+              region: {{ $params.region }}
+              routeTableIdRef:
+                name: rt-public-{{ $params.id }}
+              subnetIdRef:
+                name: subnet-public-{{ $params.id }}-{{ $az }}
+            providerConfigRef:
+              name: {{ $params.providerConfigName }}
+          {{- end }}
+          {{- range $key, $az := $params.availabilityZones }}
+          ---
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: subnet-private-{{ $params.id }}-{{ $az }}
+            labels:
+              zone: {{ $az }}
+              access: private
+              name: subnet-public-{{ $params.id }}-{{ $az }}
+            annotations:
+              {{ setResourceNameAnnotation (printf "subnet-private-%s-%s" $params.id $az) }}
+          spec:
+            forProvider:
+              region: {{ $params.region }}
+              cidrBlock: {{ index $privateSubnets $key }}
+              ipv6CidrBlock: {{ index $privateSubnetsIpv6 $key }}
+              assignIpv6AddressOnCreation: true
+              enableDns64: true
+              enableResourceNameDnsARecordOnLaunch: false
+              enableResourceNameDnsAaaaRecordOnLaunch: true
+              mapPublicIpOnLaunch: false
+              availabilityZone: {{ $az }}
+              vpcIdSelector:
+                matchControllerRef: true
+              tags:
+                kubernetes.io/role/internal-elb: "1"
+                kubernetes.io/role/alb-ingress: "1"
+            providerConfigRef:
+              name: {{ $params.providerConfigName }}
+          ---
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTableAssociation   
+          metadata:
+            name: rta-private-{{ $params.id }}-{{ $az }}
+            annotations:
+              {{ setResourceNameAnnotation (printf "rta-private-%s-%s" $params.id $az) }}
+          spec:
+            forProvider:
+              region: {{ $params.region }}
+              routeTableIdRef:
+                name: rt-private-{{ $params.id }}
+              subnetIdRef:
+                name: subnet-private-{{ $params.id }}-{{ $az }}
+            providerConfigRef:
+              name: {{ $params.providerConfigName }}
+          {{- end }}
+
+          ---
+          apiVersion: {{ .observed.composite.resource.apiVersion }}
+          kind: {{ .observed.composite.resource.kind }}
+          status:
+          {{- $subnetIds := list }}
+          {{- range $key, $az := $params.availabilityZones }}
+          {{- $subnetId := dig "resources" (printf "subnet-private-%s-%s" $params.id $az ) "resource" "metadata" "annotations" "crossplane.io/external-name" "" $.observed }}
+          {{- if $subnetId }}
+          {{- $subnetIds = append $subnetIds $subnetId }}
+          {{- end }}
+          {{- $subnetId := dig "resources" (printf "subnet-public-%s-%s" $params.id $az) "resource" "metadata" "annotations" "crossplane.io/external-name" "" $.observed }}
+          {{- if $subnetId }}
+          {{- $subnetIds = append $subnetIds $subnetId }}
+          {{- end }}
+          {{- end }}
+          {{- if $subnetIds }}
+          subnetIds:
+            {{- range $id := $subnetIds }}
+            - {{ $id }}
+            {{- end }}
+          {{- end }}
+    
+  - step: patch-and-transform-routes
+    functionRef:
+      name: crossplane-contrib-function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      patchSets:
+      - name: providerConfigRef
+        patches:
+        - fromFieldPath: spec.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+          type: FromCompositeFieldPath
+      - name: region
+        patches:
+        - fromFieldPath: spec.region
+          toFieldPath: spec.forProvider.region
+          type: FromCompositeFieldPath
+      resources:
+      - name: nat-gateway
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: NATGateway
+          spec:
+            forProvider:
+              connectivityType: public
+              allocationIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - type: CombineFromComposite
+            combine:
+              variables:
+                - fromFieldPath: spec.id
+                - fromFieldPath: spec.availabilityZones[0]
+              strategy: string
+              string:
+                fmt: "subnet-public-%s-%s"
+            toFieldPath: spec.forProvider.subnetIdRef.name
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'natg-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: route-ego
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationIpv6CidrBlock: ::/0
+              egressOnlyGatewayIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: spec.forProvider.routeTableIdRef.name
+            transforms:
+              - string:
+                  fmt: 'rt-private-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'route-ego-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: route-nat-ipv4
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationCidrBlock: 0.0.0.0/0
+              natGatewayIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: spec.forProvider.routeTableIdRef.name
+            transforms:
+              - string:
+                  fmt: 'rt-private-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'route-nat-ipv4-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: route-nat-ipv6
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationIpv6CidrBlock: 64:ff9b::/96
+              natGatewayIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: spec.forProvider.routeTableIdRef.name
+            transforms:
+              - string:
+                  fmt: 'rt-private-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'route-nat-ipv6-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: route-ig-ipv6
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationIpv6CidrBlock: ::/0
+              gatewayIdSelector:
+                matchControllerRef: true        
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: spec.forProvider.routeTableIdRef.name
+            transforms:
+              - string:
+                  fmt: 'rt-public-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'route-ig-ipv6-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: route-ig-ipv4
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationCidrBlock: 0.0.0.0/0
+              gatewayIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: spec.forProvider.routeTableIdRef.name
+            transforms:
+              - string:
+                  fmt: 'rt-public-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'route-ig-ipv4-%s'
+                  type: Format
+                type: string
+            type: FromCompositeFieldPath
+      - name: security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+        patches:
+          - type: PatchSet
+            patchSetName: region
+          - type: PatchSet
+            patchSetName: providerConfigRef
+          - fromFieldPath: spec.id
+            toFieldPath: metadata.name
+            transforms:
+              - string:
+                  fmt: 'sg-%s'
+                  type: Format
+                type: string
+          - type: ToCompositeFieldPath
+            fromFieldPath: metadata.annotations[crossplane.io/external-name]
+            toFieldPath: status.securityGroupIds[0]
+  - step: automatically-detect-ready-composed-resources
+    functionRef:
+      name: crossplane-contrib-function-auto-ready

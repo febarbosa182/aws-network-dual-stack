@@ -1,0 +1,13 @@
+apiVersion: com.febarbosa/v1alpha1
+kind: XNetwork
+metadata:
+  name: configuration-aws-network
+spec:
+  id: dev
+  region: us-east-2
+  providerConfigName: aws
+  cidrBlock: 10.0.0.0/16
+  availabilityZones:
+  - us-east-2a
+  - us-east-2b
+  - us-east-2c

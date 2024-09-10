@@ -1,0 +1,34 @@
+apiVersion: meta.pkg.crossplane.io/v1alpha1
+kind: Configuration
+metadata:
+  name: community-aws-network
+  annotations:
+    meta.crossplane.io/maintainer: Felipe Barbosa <lybrbarbosa@gmail.com>
+    meta.crossplane.io/source: github.com/febarbosa182/configuration-aws-network
+    meta.crossplane.io/license: Apache-2.0
+    meta.crossplane.io/description: |
+      Crossplane configuration which build and operate AWS networks resources.
+    meta.crossplane.io/readme: |
+     This configuration is used for deploying and managing AWS network resources on Kubernetes using Crossplane. 
+     This setup provides the necessary infrastructure to deploy AWS network with dual stack support managed with Crossplane in Kubernetes. This approach ensures a flexible, streamlined deployment workflow.
+
+     For more details and customization options, you can explore [the GitHub repository](https://github.com/febarbosa/community-aws-network).
+spec:
+  crossplane:
+    version: ">=v1.16.0"
+  dependsOn:
+    - provider: xpkg.upbound.io/upbound/provider-aws-ec2
+      # renovate: datasource=github-releases depName=upbound/provider-aws
+      version: "v1.11.0"
+    - function: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform
+      # renovate: datasource=github-releases depName=crossplane-contrib/function-patch-and-transform
+      version: "v0.7.0"
+    - function: xpkg.upbound.io/upbound/function-cidr
+      # renovate: datasource=github-releases depName=upbound/function-cidr
+      version: "v0.5.0"
+    - function: xpkg.upbound.io/crossplane-contrib/function-go-templating
+      # renovate: datasource=github-releases depName=crossplane-contrib/function-go-templating
+      version: "v0.4.1"
+    - function: xpkg.upbound.io/crossplane-contrib/function-auto-ready
+      # renovate: datasource=github-releases depName=crossplane-contrib/function-auto-ready
+      version: "v0.2.1"
