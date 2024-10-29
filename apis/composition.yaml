@@ -32,7 +32,6 @@ spec:
             kind: VPC
             spec:
               forProvider:
-                assignGeneratedIpv6CidrBlock: true
                 enableDnsSupport: true
                 enableDnsHostnames: true
           patches:
@@ -43,6 +42,9 @@ spec:
             - type: FromCompositeFieldPath
               fromFieldPath: spec.cidrBlock
               toFieldPath: spec.forProvider.cidrBlock
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.cidrIpv6Block
+              toFieldPath: spec.forProvider.ipv6CidrBlock
             - fromFieldPath: spec.id
               toFieldPath: metadata.name
               transforms:
@@ -201,9 +203,7 @@ spec:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
       cidrFunc: cidrsubnets
-      # Testing value, problems duw to undifined IPV6 before create
-      # prefix: 2600:1f16:541:6100::/56
-      prefixField: desired.composite.resource.status.atProvider.cidrIpv6.ipv6CidrBlock
+      prefixField: spec.cidrIpv6Block
       newBits:
         - 2
         - 2

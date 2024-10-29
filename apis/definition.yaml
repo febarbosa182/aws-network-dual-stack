@@ -34,6 +34,10 @@ spec:
                   type: string
                   description: CIDR block for the VPC
                   default: 10.0.0.0/16
+                cidrIpv6Block:
+                  type: string
+                  description: CIDR Ipv6 block for the VPC
+                  default: 2600:1f16:541:6100::/56
                 availabilityZones:
                   type: array
                   items:
