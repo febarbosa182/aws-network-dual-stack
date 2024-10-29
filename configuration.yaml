@@ -4,7 +4,7 @@ metadata:
   name: community-aws-network
   annotations:
     meta.crossplane.io/maintainer: Felipe Barbosa <lybrbarbosa@gmail.com>
-    meta.crossplane.io/source: github.com/febarbosa182/configuration-aws-network
+    meta.crossplane.io/source: github.com/febarbosa182/aws-network-dual-stack
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
       Crossplane configuration which build and operate AWS networks resources.

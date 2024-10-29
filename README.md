@@ -8,6 +8,7 @@ This repository contains a [Crossplane configuration](https://docs.crossplane.io
 apiVersion: pkg.crossplane.io/v1
 kind: Configuration
 metadata:
-  name: configuration-aws-network
+  name: aws-network-dual-stack
 spec:
-  package: xpkg.upbound.io/febarbosa/configuration-aws-network:v0.1.0
+  package: xpkg.upbound.io/febarbosa/aws-network-dual-stack:v0.0.1
+```
