@@ -10,7 +10,7 @@ spec:
   pipeline:
   - step: patch-and-transform-base
     functionRef:
-      name: crossplane-contrib-function-patch-and-transform
+      name: function-patch-and-transform
     input:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
@@ -160,7 +160,7 @@ spec:
   
   - step: cidr-subnets
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -172,7 +172,7 @@ spec:
       outputField: status.atFunction.cidr.partitions
   - step: cidr-subnets-private
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -185,7 +185,7 @@ spec:
       outputField: status.atFunction.cidr.private.subnets
   - step: cidr-subnets-public
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -198,7 +198,7 @@ spec:
       outputField: status.atFunction.cidr.public.subnets
   - step: cidr-subnets-ipv6
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -210,7 +210,7 @@ spec:
       outputField: status.atFunction.cidrIpv6.partitions
   - step: cidr-subnets-private-ipv6
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -223,7 +223,7 @@ spec:
       outputField: status.atFunction.cidrIpv6.private.subnets
   - step: cidr-subnets-public-ipv6
     functionRef:
-      name: upbound-function-cidr
+      name: function-cidr
     input:
       apiVersion: cidr.fn.crossplane.io/v1beta1
       kind: Parameters
@@ -236,7 +236,7 @@ spec:
       outputField: status.atFunction.cidrIpv6.public.subnets
   - step: render-templates
     functionRef:
-      name: crossplane-contrib-function-go-templating
+      name: function-go-templating
     input:
       apiVersion: gotemplate.fn.crossplane.io/v1beta1
       kind: GoTemplate
@@ -367,7 +367,7 @@ spec:
     
   - step: patch-and-transform-routes
     functionRef:
-      name: crossplane-contrib-function-patch-and-transform
+      name: function-patch-and-transform
     input:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
@@ -589,4 +589,4 @@ spec:
             toFieldPath: status.securityGroupIds[0]
   - step: automatically-detect-ready-composed-resources
     functionRef:
-      name: crossplane-contrib-function-auto-ready
+      name: function-auto-ready
