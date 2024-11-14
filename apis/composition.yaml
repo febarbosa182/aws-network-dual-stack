@@ -587,7 +587,7 @@ spec:
                   type: Format
                 type: string
           - type: ToCompositeFieldPath
-            fromFieldPath: metadata.annotations[crossplane.io/external-name]
+            fromFieldPath: metadata.name
             toFieldPath: status.securityGroupIds[0]
   - step: automatically-detect-ready-composed-resources
     functionRef:
