@@ -258,6 +258,7 @@ spec:
               zone: {{ $az }}
               access: public
               name: subnet-public-{{ $params.id }}-{{ $az }}
+              environment: {{ $params.id }}
             annotations:
               {{ setResourceNameAnnotation (printf "subnet-public-%s-%s" $params.id $az) }}
           spec:
@@ -305,6 +306,7 @@ spec:
               zone: {{ $az }}
               access: private
               name: subnet-public-{{ $params.id }}-{{ $az }}
+              environment: {{ $params.id }}
             annotations:
               {{ setResourceNameAnnotation (printf "subnet-private-%s-%s" $params.id $az) }}
           spec:
