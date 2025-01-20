@@ -1,7 +1,7 @@
 apiVersion: meta.pkg.crossplane.io/v1alpha1
 kind: Configuration
 metadata:
-  name: community-aws-network
+  name: aws-network-dual-stack
   annotations:
     meta.crossplane.io/maintainer: Felipe Barbosa <lybrbarbosa@gmail.com>
     meta.crossplane.io/source: github.com/febarbosa182/aws-network-dual-stack
@@ -12,7 +12,7 @@ metadata:
      This configuration is used for deploying and managing AWS network resources on Kubernetes using Crossplane. 
      This setup provides the necessary infrastructure to deploy AWS network with dual stack support managed with Crossplane in Kubernetes. This approach ensures a flexible, streamlined deployment workflow.
 
-     For more details and customization options, you can explore [the GitHub repository](https://github.com/febarbosa/community-aws-network).
+     For more details and customization options, you can explore [the GitHub repository](https://github.com/febarbosa/aws-network-dual-stack).
 spec:
   crossplane:
     version: ">=v1.16.0"
