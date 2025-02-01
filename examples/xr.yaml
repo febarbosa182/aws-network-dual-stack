@@ -5,7 +5,7 @@ metadata:
 spec:
   id: dev
   region: us-east-2
-  providerConfigName: aws
+  providerConfigName: aws-dev
   cidrBlock: 10.0.0.0/16
   cidrIpv6Block: 2600:1f16:541:6100::/56
   availabilityZones:
