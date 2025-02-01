@@ -1,7 +1,7 @@
 apiVersion: com.febarbosa/v1alpha1
 kind: XNetwork
 metadata:
-  name: configuration-aws-network
+  name: aws-network-dual-stack
 spec:
   id: dev
   region: us-east-2
